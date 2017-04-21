@@ -1,0 +1,16 @@
+<<<driver program>>>
+start
+	for(i in 1..5)
+	start
+		declare a:integer;
+	end
+	declare t:boolean;
+	t := 5 <= 6;
+	switch(t)
+	start
+		case true: declare a:integer;
+					break;
+		case false: declare b:integer;
+					break;
+	end
+end
