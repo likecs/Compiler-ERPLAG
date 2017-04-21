@@ -1,0 +1,12 @@
+<<<driver program>>>
+start
+	for(i in 1..5)
+	start
+		declare id:integer;
+		for (i in 1..5)
+		start
+			i := 7;
+			declare id:integer;
+		end
+	end
+end
