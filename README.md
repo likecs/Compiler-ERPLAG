@@ -17,5 +17,7 @@ where "name_of_file" is the output file in which the asm code will be generated.
 The asm code is compatiable with NASM, version 2.0.1.
 
 <h3>Dependencies</h3>
-* You should have NASM, version 2.0.1 installed on your machine.
-* You should have gcc, version 5.0 or above installed on your machine.
+<ol>
+<li>You should have NASM, version 2.0.1 installed on your machine.</li>
+<li>You should have gcc, version 5.0 or above installed on your machine.</li>
+</ol>
