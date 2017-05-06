@@ -1,3 +1,10 @@
+/*
+ *	COMPILER PROJECT- ERPLAG COMPILER
+ *	Batch Number 74
+ *	Bhuvnesh Jain : 2014A7PS028P
+ *	Chirag Agarwal : 2014A7PS033P
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -6,7 +13,7 @@
 #include "symbolDef.h"
 #include "symbolTable.h"
 
-static int id_num = 0;
+static int id_counter = 0;
 
 int getBytes(term s)
 {
@@ -142,22 +149,27 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 	store2 res;
 	scopeChain* TREE = (scopeChain*)malloc(sizeof(scopeChain));
 	TREE->scope = 0;
-	TREE->next = NULL;
-	TREE->prev = NULL;
 	TREE->in_cond = 0;
 	TREE->in_loop = 0;
-	int univ_scope = 0;
-	char current_func[20];
-	strcpy(current_func, " ");
+	TREE->next = NULL;
+	TREE->prev = NULL;
+	int universal_scope = 0;
+	char current_function[20];
+	strcpy(current_function, " ");
 	char name;
 	int i = -2;
 	int default_flag = 0;
 	int switch_type;
 	IDEntry* for_start = NULL;
-	int switch_error[3] = {-1, -1, -1};	
-	int switch_scope_end;
-	int switch_scope_start;
-	int depth_in_scope = 0, offset_in_function = 0;
+	int switch_end;
+	int switch_start;
+	int switch_error[3];
+	int j;
+	for(j = 0; j < 3; ++j) 
+	{
+		switch_error[j] = -1;
+	}
+	int scope_level = 0, function_offset = 0;
 
 	while(token != NULL)
 	{
@@ -170,9 +182,9 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 				// function declaration/definition starts, so current function name changes
 				if(token->prev->s == DEF)
 				{
-					depth_in_scope = 0;
-					offset_in_function = 0;
-					strcpy(current_func, token->n->val.s);
+					scope_level = 0;
+					function_offset = 0;
+					strcpy(current_function, token->n->val.s);
 				}
 				//function name not found
 				if(res.code == -1)			
@@ -210,9 +222,9 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 						}
 						else
 						{
-							if (print)
+							if (print == 1)
 							{
-								printf("\nERROR : Overloading of module \"%s\" at line number %d not allowed",current_func,token->lno);
+								printf("\nERROR : Overloading of module \"%s\" at line number %d not allowed",current_function,token->lno);
 							}
 			 				semantic_status = 0;
 						}
@@ -220,9 +232,9 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 					else if(token->prev->s == DECLARE)
 					{
 						token = token->n;
-						if (print)
+						if (print == 1)
 						{
-							printf("\nERROR : Redundant declaration of module \"%s\" at line number %d",current_func,token->lno);
+							printf("\nERROR : Redundant declaration of module \"%s\" at line number %d",current_function,token->lno);
 						}
 			 			semantic_status = 0;
 					}
@@ -232,17 +244,17 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 			{
 				//Function calling statements
 				token = token->n;
-				if(strcmp(current_func, token->val.s) == 0)
+				if(strcmp(current_function, token->val.s) == 0)
 				{
-					if (print)
+					if (print == 1)
 					{
-						printf("\nERROR : Function \"%s\" at line number %d cannot be invoked recursively",current_func,token->lno);
+						printf("\nERROR : Function \"%s\" at line number %d cannot be invoked recursively",current_function,token->lno);
 					}
 			 		semantic_status = 0;
 				}			
 				else if(res.code == -1)				
 				{	
-					if (print)
+					if (print == 1)
 					{
 						printf("\nERROR : Undeclared module \"%s\" at line number %d",token->val.s, token->lno);
 					}
@@ -266,7 +278,7 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 				}
 				IDEntry* par_data = (IDEntry*)malloc(sizeof(IDEntry));
 				strcpy(par_data->entity.ivar.word, token->val.s);
-				par_data->entity.ivar.code = id_num++;
+				par_data->entity.ivar.code = id_counter++;
 				par_data->entity.ivar.lno = token->lno;
 				//ignore the colon
 				assert(token->n != NULL);
@@ -296,7 +308,7 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 				res = findScope(tableID, par_data->entity.ivar.word, TREE->scope, 0);
 				if(res.code >= 0)
 				{
-					if (print)
+					if (print == 1)
 					{
 						printf("\nERROR : Repeat declaration of identifier \"%s\" in function input list at line number %d",par_data->entity.ivar.word, par_data->entity.ivar.lno);
 					}
@@ -304,17 +316,17 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 				}
 				else
 				{	
-					strcpy(par_data->entity.ivar.func_name, current_func);
-					par_data->entity.ivar.depth = depth_in_scope + 1;
-					par_data->entity.ivar.offset = offset_in_function;
+					strcpy(par_data->entity.ivar.func_name, current_function);
+					par_data->entity.ivar.depth = scope_level + 1;
+					par_data->entity.ivar.offset = function_offset;
 					addScope(tableID, par_data, 0);
 					int bytes = par_data->entity.ivar.bytes;
 					if (par_data->entity.ivar.v_a == 1) 
 					{
 						bytes *= (par_data->entity.ivar.var.a.e_idx - par_data->entity.ivar.var.a.s_idx + 1);
 					}
-					offset_in_function += bytes;
-					res = findScope(tableFunc,current_func, TREE->scope, 1);
+					function_offset += bytes;
+					res = findScope(tableFunc,current_function, TREE->scope, 1);
 					//create link list of parameter values
 					if(res.node->entity.ifunc.inputList == NULL)
 					{
@@ -375,7 +387,7 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 				}
 				IDEntry* par_data = (IDEntry*)malloc(sizeof(IDEntry));
 				strcpy(par_data->entity.ivar.word, token->val.s);
-				par_data->entity.ivar.code = id_num++;
+				par_data->entity.ivar.code = id_counter++;
 				par_data->entity.ivar.lno = token->lno;
 				//ignore the colon
 				assert(token->n != NULL);
@@ -389,7 +401,7 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 					//ignore closing bracket and "of"
 					token = token->n->n->n;
 					assert(token != NULL);
-					if (print)
+					if (print == 1)
 					{
 						printf("\nERROR : Output list of function can't contain array as parameter\n");
 					}
@@ -404,7 +416,7 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 					res = findScope(tableID, par_data->entity.ivar.word, 0, TREE->scope);
 					if(res.code >= 0)
 					{
-						if (print)
+						if (print == 1)
 						{
 							printf("\nERROR : Repeat declaration of identifier \"%s\" at line number %d",par_data->entity.ivar.word,par_data->entity.ivar.lno);
 						}
@@ -412,26 +424,26 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 					}
 					else
 					{	
-						strcpy(par_data->entity.ivar.func_name, current_func);
-						par_data->entity.ivar.depth = depth_in_scope + 1;
-						par_data->entity.ivar.offset = offset_in_function;
+						strcpy(par_data->entity.ivar.func_name, current_function);
+						par_data->entity.ivar.depth = scope_level + 1;
+						par_data->entity.ivar.offset = function_offset;
 						addScope(tableID, par_data, 0);
 						int bytes = par_data->entity.ivar.bytes;
 						if (par_data->entity.ivar.v_a == 1) 
 						{
 							bytes *= (par_data->entity.ivar.var.a.e_idx - par_data->entity.ivar.var.a.s_idx + 1);
 						}
-						offset_in_function += bytes;
+						function_offset += bytes;
 						int invalid = checkModuleReturn(par_data, token, tableID);
 						if(invalid == 1)
 						{
-							if (print)
+							if (print == 1)
 							{
-								printf("\nERROR : The variable \"%s\" returned by the function \"%s\" is not assigned any value within the function definition", par_data->entity.ivar.word, current_func);
+								printf("\nERROR : The variable \"%s\" returned by the function \"%s\" is not assigned any value within the function definition", par_data->entity.ivar.word, current_function);
 							}
 							semantic_status = 0;
 						}
-						res = findScope(tableFunc,current_func, TREE->scope, 1);
+						res = findScope(tableFunc,current_function, TREE->scope, 1);
 						//create link list of parameter values
 						if(res.node->entity.ifunc.outputList == NULL)
 						{
@@ -473,7 +485,7 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 				token = token->n;
 				IDEntry* par_data = (IDEntry*)malloc(sizeof(IDEntry));
 				strcpy(par_data->entity.ivar.word, token->val.s);
-				par_data->entity.ivar.code = id_num++;
+				par_data->entity.ivar.code = id_counter++;
 				par_data->entity.ivar.lno = token->lno;
 				//ignore all the variable names for now to get datatype first
 				//information updated later
@@ -518,7 +530,7 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 				res = findScope(tableID, par_data->entity.ivar.word, TREE->scope, 0);
 				if(res.code >= 0)
 				{
-					if (print)
+					if (print == 1)
 					{
 						printf("\nERROR : Repeat declaration of identifier \"%s\" at line number %d",par_data->entity.ivar.word, par_data->entity.ivar.lno);
 					}
@@ -526,16 +538,16 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 				}
 				else
 				{
-					strcpy(par_data->entity.ivar.func_name, current_func);
-					par_data->entity.ivar.depth = depth_in_scope;
-					par_data->entity.ivar.offset = offset_in_function;
+					strcpy(par_data->entity.ivar.func_name, current_function);
+					par_data->entity.ivar.depth = scope_level;
+					par_data->entity.ivar.offset = function_offset;
 					addScope(tableID, par_data, 0);
 					int bytes = par_data->entity.ivar.bytes;
 					if (par_data->entity.ivar.v_a == 1) 
 					{
 						bytes *= (par_data->entity.ivar.var.a.e_idx - par_data->entity.ivar.var.a.s_idx + 1);
 					}
-					offset_in_function += bytes;
+					function_offset += bytes;
 				}
 				token = token->prev;
 				assert(token->s == COLON);
@@ -568,13 +580,13 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 						par_data->entity.ivar.var.v.type = type;
 						par_data->entity.ivar.bytes = getBytes(type);
 					}		
-					par_data->entity.ivar.code = id_num++;
+					par_data->entity.ivar.code = id_counter++;
 					par_data->entity.ivar.scope = TREE->scope;
 					par_data->entity.ivar.lno = token->lno;
 					res = findScope(tableID,par_data->entity.ivar.word,TREE->scope,0);
 					if(res.code >= 0)
 					{
-						if (print)
+						if (print == 1)
 						{
 							printf("\nERROR : Repeat declaration of identifier \"%s\" at line number %d",par_data->entity.ivar.word,par_data->entity.ivar.lno);
 						}
@@ -582,16 +594,16 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 					}
 					else
 					{
-						strcpy(par_data->entity.ivar.func_name, current_func);
-						par_data->entity.ivar.depth = depth_in_scope;
-						par_data->entity.ivar.offset = offset_in_function;
+						strcpy(par_data->entity.ivar.func_name, current_function);
+						par_data->entity.ivar.depth = scope_level;
+						par_data->entity.ivar.offset = function_offset;
 						addScope(tableID, par_data, 0);
 						int bytes = par_data->entity.ivar.bytes;
 						if (par_data->entity.ivar.v_a == 1) 
 						{
 							bytes *= (par_data->entity.ivar.var.a.e_idx - par_data->entity.ivar.var.a.s_idx + 1);
 						}
-						offset_in_function += bytes;
+						function_offset += bytes;
 					}
 					token = token->n;
 				}
@@ -622,7 +634,7 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 			}		
 			if(res.code == -1)
 			{
-				if (print)
+				if (print == 1)
 				{
 					printf("\nERROR : Undeclared variable \"%s\" at line number %d",token->val.s, token->lno);
 				}
@@ -631,24 +643,24 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 		}
 		else if(token->s == DEF)
 		{
-			TREE->scope = ++univ_scope;
+			TREE->scope = ++universal_scope;
 		}
 		else if(token->s == DRIVERDEF)
 		{
-			TREE->scope = ++univ_scope;
+			TREE->scope = ++universal_scope;
 			IDEntry* par_data = (IDEntry*)malloc(sizeof(IDEntry));
 			strcpy(par_data->entity.ifunc.word, "program");
 			par_data->entity.ifunc.status = defined;
 			par_data->entity.ifunc.scope = TREE->scope;
 			par_data->entity.ifunc.lno = token->lno;
 			addScope(tableFunc,par_data, 1);
-			strcpy(current_func,"program");
+			strcpy(current_function,"program");
 		}
 		else if(token->s == SWITCH)
 		{
-			switch_scope_start = (token->lno) + 1;
+			switch_start = (token->lno) + 1;
 			scopeChain* go = (scopeChain*)malloc(sizeof(scopeChain));
-			go->scope = ++univ_scope;
+			go->scope = ++universal_scope;
 			go->next = NULL;
 			go->prev = TREE;
 			go->in_cond = 0;
@@ -682,7 +694,7 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 			}
 			if(res.code == -1)
 			{
-				if (print)
+				if (print == 1)
 				{
 					printf("\nERROR : Undeclared variable \"%s\" at line number %d",token->val.s, token->lno);
 				}
@@ -693,7 +705,7 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 				switch_type = res.node->entity.ivar.var.v.type;
 				if(switch_type == REAL)
 				{
-					if (print)
+					if (print == 1)
 					{
 						printf("\nERROR : Line %d has a switch statement with an identifier of type real.", token->lno);
 					}
@@ -726,7 +738,7 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 		else if(token->s == FOR || token->s == WHILE)
 		{
 			scopeChain* go = (scopeChain*)malloc(sizeof(scopeChain));
-			go->scope = ++univ_scope;
+			go->scope = ++universal_scope;
 			go->next = NULL;
 			go->prev = TREE;
 			go->in_cond = 0;
@@ -761,7 +773,11 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 				}
 				if (ctrl_var.code == -1)
 				{
-					printf("\nERROR : Line %d has \"FOR\" loop variable undefined\n", token->lno);
+					if (print == 1)
+					{
+						printf("\nERROR : Line %d has \"FOR\" loop variable undefined\n", token->lno);
+					}
+					semantic_status = 0;
 				}
 				else 
 				{
@@ -771,15 +787,15 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 		}
 		else if(token->s == START)
 		{
-			// printf("Entered Function : %s\n", current_func);
+			// printf("Entered Function : %s\n", current_function);
 			scope_tot[TREE->scope].scope_start = token->lno;
-			depth_in_scope += 1;
+			scope_level += 1;
 		}
 		else if(token->s == END)
 		{
-			// printf("Exiting function : %s\n", current_func);
+			// printf("Exiting function : %s\n", current_function);
 			scope_tot[TREE->scope].scope_end = token->lno;
-			depth_in_scope -= 1;
+			scope_level -= 1;
 			if((TREE->in_loop) == 1)
 			{	
 				TREE = TREE->prev;
@@ -788,37 +804,37 @@ void createIDTable(tokenInfo* token, totalScopeList* scope_tot, hashTable2 table
 			}
 			else if((TREE->in_cond) == 1)
 			{					
-				switch_scope_end = token->lno;
+				switch_end = token->lno;
 				if(default_flag == 0 && switch_type != BOOLEAN)
 				{
-					if (print)
+					if (print == 1)
 					{
-						printf("\nERROR : The case statements lines <%d> to <%d> must have a default statement.", switch_scope_start, switch_scope_end);
+						printf("\nERROR : The case statements lines <%d> to <%d> must have a default statement.", switch_start, switch_end);
 					}
 			 		semantic_status = 0;
 				}
 				default_flag = 0;
 				if(switch_error[0] == 1)
 				{
-					if (print)
+					if (print == 1)
 					{
-						printf("\nERROR : The switch statement lines <%d>  to <%d> cannot have case statement with case keyword followed by any other value other than an integer ",switch_scope_start, switch_scope_end);
+						printf("\nERROR : The switch statement lines <%d>  to <%d> cannot have case statement with case keyword followed by any other value other than an integer ",switch_start, switch_end);
 					}
 			 		semantic_status = 0;
 				}
 				if(switch_error[1] == 1)
 				{
-					if (print)
+					if (print == 1)
 					{
-						printf("\nERROR : Lines <%d>to <%d> of the switch statement cannot have the case statements with integer labels.", switch_scope_start, switch_scope_end);
+						printf("\nERROR : Lines <%d>to <%d> of the switch statement cannot have the case statements with integer labels.", switch_start, switch_end);
 					}
 			 		semantic_status = 0;
 				}
 				if(switch_error[2] == 1)
 				{
-					if (print)
+					if (print == 1)
 					{
-						printf("\nERROR : The switch statement lines <%d> to <%d> should not have a default statement. ",switch_scope_start, switch_scope_end);
+						printf("\nERROR : The switch statement lines <%d> to <%d> should not have a default statement. ",switch_start, switch_end);
 					}
 			 		semantic_status = 0;
 				}
@@ -845,32 +861,32 @@ void secondRun(tokenInfo* token, hashTable2 tableID, hashTable2 tableFunc, int p
 	TREE->prev = NULL;
 	TREE->in_cond = 0;
 	TREE->in_loop = 0;
-	int univ_scope = 0;
-	char current_func[10]; 
-	strcpy(current_func," ");
+	int universal_scope = 0;
+	char current_function[10]; 
+	strcpy(current_function," ");
 	while(token != NULL)
 	{
 		if(token->s == MODULE)
 		{
 			if(token->prev->s == DEF)
 			{
-				strcpy(current_func,token->n->val.s);
+				strcpy(current_function,token->n->val.s);
 			}
 		}
 		
 		else if(token->s == DEF)
 		{
-			TREE->scope = ++univ_scope;
+			TREE->scope = ++universal_scope;
 		}
 		else if(token->s == DRIVERDEF)
 		{
-			TREE->scope = ++univ_scope;
-			strcpy(current_func, "program");
+			TREE->scope = ++universal_scope;
+			strcpy(current_function, "program");
 		}
 		else if(token->s == SWITCH)
 		{
 			scopeChain* go = (scopeChain*)malloc(sizeof(scopeChain));
-			go->scope = ++univ_scope;
+			go->scope = ++universal_scope;
 			go->next = NULL;
 			go->prev = TREE;
 			go->in_cond = 0;
@@ -915,7 +931,7 @@ void secondRun(tokenInfo* token, hashTable2 tableID, hashTable2 tableFunc, int p
 		else if(token->s == FOR || token->s == WHILE)
 		{
 			scopeChain* go = (scopeChain*)malloc(sizeof(scopeChain));
-			go->scope = ++univ_scope;
+			go->scope = ++universal_scope;
 			go->next = NULL;
 			go->prev = TREE;
 			go->in_cond = 0;
@@ -929,7 +945,7 @@ void secondRun(tokenInfo* token, hashTable2 tableID, hashTable2 tableFunc, int p
 			//ignore "module" lexeme
 			token = token->n->n;
 			res = findScope(tableFunc, token->val.s, 0, 1);
-			if(strcmp(current_func, token->val.s) == 0)
+			if(strcmp(current_function, token->val.s) == 0)
 			{
 				//case of recursion, handled before
 				while(token != NULL && token->s != SEMICOL)

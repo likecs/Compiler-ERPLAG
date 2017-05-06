@@ -18,18 +18,16 @@
 #include "symbolTable.h"
 #include "astDef.h"
 #include "ast.h"
+#include "assembler.h"
 
-void printSep() 
-{
-	printf("\n***************************************************************************************\n");
-}
+#define LIMIT 		25
 
-extern int parse_status;
+void printSep();
 
 int main(int argc, char * argv[])
 {
 	//Initialise the hash table for keywords
-	hashTable table = initializeHashTable(31);
+	hashTable table = initializeHashTable(hash_capacity);
 	FILE *fp = fopen("keywords.txt", "r");
 	int type, option;	
 	char input[21];
@@ -46,6 +44,8 @@ int main(int argc, char * argv[])
 	findFollow(G);
 	createParseTable(G);
 
+	printf("LEVEL 4 : We were able to handle about 30-35 semantic errors.\nAlso all syntactic errors were covered.\n"):
+
 	while(1)
 	{
 		//Display the menu
@@ -59,8 +59,8 @@ int main(int argc, char * argv[])
 		printf("7: For generating the assembly code in the NASM format.\n");
 		printf("8: Quit.\n");
 		int option;
-		scanf("%d",&option);
-
+		scanf("%d", &option);
+		
 		printSep();
 		if(option == 1)
 		{
@@ -85,9 +85,9 @@ int main(int argc, char * argv[])
 				tokenInfo *T = getFirstToken();
 				hashTable2 tableId = initializeHashTable2(hash_capacity_2);
 				hashTable2 tableFunc = initializeHashTable2(hash_capacity_2);
-				totalScopeList* scopeTable = (totalScopeList *)malloc(20 * sizeof(totalScopeList));
+				totalScopeList* scopeTable = (totalScopeList *)malloc(LIMIT * sizeof(totalScopeList));
 				int i;
-				for(i = 0; i < 20; ++i)
+				for(i = 0; i < LIMIT; ++i)
 				{
 					scopeTable[i].scope_start = 0;
 					scopeTable[i].scope_end = 0;
@@ -109,9 +109,9 @@ int main(int argc, char * argv[])
 				tokenInfo *T = getFirstToken();
 				hashTable2 tableId = initializeHashTable2(hash_capacity_2);
 				hashTable2 tableFunc = initializeHashTable2(hash_capacity_2);
-				totalScopeList* scopeTable = (totalScopeList *)malloc(20 * sizeof(totalScopeList));
+				totalScopeList* scopeTable = (totalScopeList *)malloc(LIMIT * sizeof(totalScopeList));
 				int i;
-				for(i = 0; i < 20; ++i)
+				for(i = 0; i < LIMIT; ++i)
 				{
 					scopeTable[i].scope_start = 0;
 					scopeTable[i].scope_end = 0;
@@ -136,14 +136,16 @@ int main(int argc, char * argv[])
 				tokenInfo *T = getFirstToken();
 				hashTable2 tableId = initializeHashTable2(hash_capacity_2);
 				hashTable2 tableFunc = initializeHashTable2(hash_capacity_2);
-				totalScopeList* scopeTable = (totalScopeList *)malloc(20 * sizeof(totalScopeList));
+				totalScopeList* scopeTable = (totalScopeList *)malloc(LIMIT * sizeof(totalScopeList));
 				int i;
-				for(i = 0; i < 20; ++i)
+				for(i = 0; i < LIMIT; ++i)
 				{
 					scopeTable[i].scope_start = 0;
 					scopeTable[i].scope_end = 0;
 				}
 				createIDTable(T, scopeTable, tableId, tableFunc, 0);
+				T = getFirstToken();
+				secondRun(T, tableId, tableFunc, 0);
 				printf("Symbol Table sucessfully created.\n");
 				printf("%-4s %-10s\t%-20s %-10s %-15s %-6s %-6s %-6s\n", "SNO", "Var-Name", "Func-Name", "Datatype", "Start - End", "Level", "Size", "Offset");
 				printVariables(tableId, scopeTable);
@@ -162,9 +164,9 @@ int main(int argc, char * argv[])
 				tokenInfo *T = getFirstToken();
 				hashTable2 tableId = initializeHashTable2(hash_capacity_2);
 				hashTable2 tableFunc = initializeHashTable2(hash_capacity_2);
-				totalScopeList* scopeTable = (totalScopeList *)malloc(20 * sizeof(totalScopeList));
+				totalScopeList* scopeTable = (totalScopeList *)malloc(LIMIT * sizeof(totalScopeList));
 				int i;
-				for(i = 0; i < 20; ++i)
+				for(i = 0; i < LIMIT; ++i)
 				{
 					scopeTable[i].scope_start = 0;
 					scopeTable[i].scope_end = 0;
@@ -188,7 +190,57 @@ int main(int argc, char * argv[])
 		}
 		else if (option == 7)
 		{
-			
+			removeComments(argv[1], "clean.txt");
+			parseTree Tree = parseInputSourceCode("clean.txt", table, G, 0);
+			if (parse_status == 1) 
+			{
+				tokenInfo *T = getFirstToken();
+				hashTable2 tableId = initializeHashTable2(hash_capacity_2);
+				hashTable2 tableFunc = initializeHashTable2(hash_capacity_2);
+				totalScopeList* scopeTable = (totalScopeList *)malloc(LIMIT * sizeof(totalScopeList));
+				int i;
+				for(i = 0; i < LIMIT; ++i)
+				{
+					scopeTable[i].scope_start = 0;
+					scopeTable[i].scope_end = 0;
+				}
+				semantic_status = 1;
+				createIDTable(T, scopeTable, tableId, tableFunc, 1);
+				T = getFirstToken();
+				secondRun(T, tableId, tableFunc, 1);
+				ASTree _ast = buildASTree(Tree, tableId, tableFunc, 0);
+				int type_error = ASTQueueTypeChecker(_ast.root, 0);
+				type_error = ASTQueueTypeChecker(_ast.root, 1);
+				if (semantic_status == 1 && type_error == 0)
+				{
+					printf("No sematic errors were found.\n");
+					FILE* fp;
+					fp = fopen(argv[2],"w");
+					fprintf(fp,"SECTION .bss\n");
+					fprintf(fp,"\tlpBuffer: resb 18\n\tBuf_Len: equ $-lpBuffer\n");
+					fprintf(fp,"lft: RESW 8\nFOR_CTRL: RESW 8\nOUT: RESW 10\ntemp: RESW 1\nrgt: RESW 1\n");
+					WriteData(tableId,fp);
+					fprintf(fp,"SECTION .text\nglobal _start\n\n_start:\n");
+					parseQueue(_ast.root,fp); 
+					printf("\nAssembly code file created in code.asm");
+					fprintf(fp,"call exit\n\n");							
+					FILE *fc = fopen("utility.txt", "r");
+					char buff[2500];
+					int bytes = fread(buff, 1, sizeof(buff), fc);
+					buff[bytes] = '\0';
+					fprintf(fp, "%s\n",buff);
+					fclose(fp);
+				}
+				else
+				{
+					printf("Assembly code can't be generated due to semantic errors existing in code.\n");
+				}
+			}
+			else
+			{
+				printf("Parsing was not successful. So no semantic erros are detected.\n");
+				printf("Assembly code can't be generated.\n");
+			}		
 		}
 		else if (option == 8)
 		{
@@ -201,4 +253,9 @@ int main(int argc, char * argv[])
 		printSep();
 	}
 	return(0);	
+}
+
+void printSep() 
+{
+	printf("\n****************************************************************************************************\n");
 }

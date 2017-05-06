@@ -6,4 +6,5 @@ all:
 	gcc hash2.c -c -o hash2.o
 	gcc symbolTable.c -c -o symbolTable.o
 	gcc ast.c -c -o ast.o
-	gcc -o compiler hash.o lexer.o driver.o parser.o hash2.o symbolTable.o ast.o
+	gcc assembler.c -c -o assembler.o
+	gcc -o compiler hash.o lexer.o driver.o parser.o hash2.o symbolTable.o ast.o assembler.o

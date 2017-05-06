@@ -771,5 +771,6 @@ void removeComments(char *testcaseFile, char *cleanFile)
 			}
 		}
 	}
+	fclose(f_read);
 	fclose(f_write);
 }

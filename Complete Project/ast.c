@@ -13,6 +13,7 @@
 #include "astDef.h"
 #include "parser.h"
 #include "symbolTable.h"
+#include "assembler.h"
 
 int scope_in_module = 0;
 int in_other = 0;
