@@ -10,9 +10,9 @@ Instructor : Vandana Agarwal
 In the Complete project directory, just type the following commands
 
 	make
-	compiler name_of_file
+	compiler name_of_file name_of_code_file
 
-where "name_of_file" is the output file in which the asm code will be generated. For example - code.asm
+where "name_of_file" is the input test file (like "testcase1.txt") and name_of_code_file is the output file in which the asm code will be generated (like "code.asm")
 
 The asm code is compatiable with NASM, version 2.0.1.
 
