@@ -44,7 +44,7 @@ int main(int argc, char * argv[])
 	findFollow(G);
 	createParseTable(G);
 
-	printf("LEVEL 4 : We were able to handle about 30-35 semantic errors.\nAlso all syntactic errors were covered.\n"):
+	printf("LEVEL 4 : We were able to handle about 30-35 semantic errors.\nAlso all syntactic errors were covered.\n");
 
 	while(1)
 	{

@@ -8,3 +8,8 @@ all:
 	gcc ast.c -c -o ast.o
 	gcc assembler.c -c -o assembler.o
 	gcc -o compiler hash.o lexer.o driver.o parser.o hash2.o symbolTable.o ast.o assembler.o
+
+clean:
+	rm *.o
+	rm compiler
+
